@@ -72,11 +72,12 @@ class Assets {
 	 * @return void
 	 */
 	public function hooks() {
-		add_action( 'admin_init',         [ $this, 'enqueue_editor_global_css' ], 5 );
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_global_css' ], 5 );
-		add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_global_js' ], 5 );
-		add_action( 'after_setup_theme',  [ $this, 'enqueue_blocks_css' ], 5 );
-		add_action( 'after_setup_theme',  [ $this, 'register_block_styles' ], 5 );
+		add_action( 'admin_init',                [ $this, 'enqueue_editor_global_css' ], 5 );
+		add_action( 'wp_enqueue_scripts',        [ $this, 'enqueue_frontend_global_css' ], 5 );
+		add_action( 'wp_enqueue_scripts',        [ $this, 'enqueue_frontend_global_js' ], 5 );
+		add_action( 'after_setup_theme',         [ $this, 'enqueue_blocks_css' ], 5 );
+		add_action( 'after_setup_theme',         [ $this, 'register_block_styles' ], 5 );
+		add_filter( 'get_block_type_variations', [ $this, 'register_block_variations' ], 5, 2 );
 	}
 
 	/**
@@ -179,16 +180,19 @@ class Assets {
 
 		// Loop through data.
 		foreach ( $data as $block ) {
-			// Enqueue the block style.
-			foreach ( (array) $block['blocks'] as $block_name ) {
-				wp_enqueue_block_style(
-					$block_name,
-					[
-						'handle' => $block['handle'],
-						'src'    => $block['src'],
-						'path'   => $block['path'],
-					]
-				);
+			// If the block has a src and path, enqueue the block styles.
+			if ( $block['src'] && $block['path'] ) {
+				// Enqueue the block style.
+				foreach ( (array) $block['blocks'] as $block_name ) {
+					wp_enqueue_block_style(
+						$block_name,
+						[
+							'handle' => $block['handle'],
+							'src'    => $block['src'],
+							'path'   => $block['path'],
+						]
+					);
+				}
 			}
 
 			// Register the block style.
@@ -201,6 +205,45 @@ class Assets {
 				]
 			);
 		}
+	}
+
+	/**
+	 * Register block variations.
+	 * Uses static cache to avoid multiple calls to the cache
+	 * for each registered block.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param array         $variations The variations.
+	 * @param WP_Block_Type $block_type The block type.
+	 *
+	 * @return array
+	 */
+	public function register_block_variations( $variations, $block_type ) {
+		// Get the block styles.
+		static $data = null;
+
+		// Get the block variations data.
+		$data = is_null( $data ) ? $this->cache->remember( 'block_variations', [ $this, 'get_block_variations_data' ], $this->expire ) : $data;
+
+		// Bail if no data.
+		if ( ! $data ) {
+			return $variations;
+		}
+
+		// Bail if no block variation for this block.
+		if ( ! isset( $data[ $block_type->name ] ) ) {
+			return $variations;
+		}
+
+		ray( $block_type );
+
+		// Register the block variation.
+		$variations[] = $data[ $block_type->name ];
+
+		ray( $variations );
+
+		return $variations;
 	}
 
 	/**
@@ -427,6 +470,32 @@ class Assets {
 
 			// Add the block data.
 			$data[] = $block;
+		}
+
+		return $data;
+	}
+
+	public function get_block_variations_data() {
+		$variations = (array) Config::get( 'blocks.variations' );
+		$data             = [];
+
+		// Loop through the block variations.
+		foreach ( $variations as $variation ) {
+			// Loop through the blocks.
+			foreach ( $variation['blocks'] as $block_name ) {
+				// Add a custom variation.
+				$data[ $block_name ] = wp_parse_args(
+					$variation,
+					[
+						'name'        => null,
+						'title'       => null,
+						'description' => null,
+						'scope'       => [ 'inserter' ],
+						'isDefault'   => false,
+						'attributes'  => [],
+					],
+				);
+			}
 		}
 
 		return $data;

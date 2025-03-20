@@ -17,9 +17,15 @@ return [
 	],
 	// Add or override via {TBD}
 	'blocks' => [
+		/**
+		 * Add block CSS.
+		 */
 		'css' => [
 			'navigation' => [ 'core/navigation' ],
 		],
+		/**
+		 * Add block styles.
+		 */
 		'styles' => [
 			'heading' => [
 				'label'   => __( 'Heading', 'mai-builder' ),
@@ -51,6 +57,38 @@ return [
 				'name'    => 'link',
 				'default' => false,
 			],
+			'icon-divider' => [
+				'label'   => __( 'Divider', 'mai-builder' ),
+				'blocks'  => [ 'outermost/icon-block' ],
+				'name'    => 'divider',
+				'default' => false,
+			],
 		],
+		/**
+		 * Add block variations.
+		 *
+		 * @link https://developer.wordpress.org/block-editor/reference-guides/block-api/block-variations/#defining-a-block-variation
+		 */
+		'variations' => [
+			// 'icon-divider' => [
+			// 	'title'       => __( 'Divider', 'mai-builder' ),
+			// 	'blocks'      => [ 'outermost/icon-block' ],
+			// 	'name'        => 'divider',
+			// 	'description' => __( 'An SVG divider for the icon block.', 'mai-builder' ),
+			// 	'scope'       => [ 'block','inserter', 'transform' ],
+			// 	'isDefault'   => false,
+			// 	'isActive'    => [
+			// 		'width',
+			// 	],
+			// 	'attributes'  => array(
+			// 		'width'  => '100%',
+			// 		'height' => '200px',
+			// 	),
+			// ],
+		],
+	],
+	'icons' => [
+		plugin_dir_path(__FILE__) . 'assets/icons',
+		get_template_directory() . '/mai/icons',
 	],
 ];

@@ -122,33 +122,54 @@ class IconBlock {
 	 * @return WP_REST_Response
 	 */
 	function get_icons( WP_REST_Request $request ) {
-		$base_dir   = get_template_directory() . '/mai/icons';
-		$path       = $request->get_param( 'path' );
-		$target_dir = $path ? realpath( $base_dir . '/' . $path ) : $base_dir;
+		// Get icon directories from config.
+		$icon_dirs = (array) Config::get( 'icons' );
 
-		// Ensure the target directory is within the base icons directory.
-		if ( ! str_contains( $target_dir, $base_dir ) || ! is_dir( $target_dir ) ) {
-			return new WP_REST_Response( [ 'error' => __( 'Invalid directory path.', 'mai-builder' ) ], 400 );
+		// Bail if no valid directories.
+		if ( empty( $icon_dirs ) ) {
+			return new WP_REST_Response( [
+				'icons'      => [],
+				'categories' => [],
+			], 200 );
 		}
 
-		// Start icons and categories.
+		// Start icons and categories
 		$this->icons      = [];
 		$this->categories = [];
 
-		// If no path, check for root level SVGs.
-		if ( ! $path ) {
-			$root_svgs = glob( $base_dir . '/*.svg' );
+		// Get the requested path.
+		$path = $request->get_param( 'path' );
 
-			// If root level SVGs.
+		// Process each directory.
+		foreach ( $icon_dirs as $source => $base_dir ) {
+			// Skip if directory doesn't exist
+			if ( ! is_dir( $base_dir ) ) {
+				continue;
+			}
+
+			// If path is specified, only look in that subdirectory.
+			$target_dir = $path ? realpath( $base_dir . '/' . $path ) : $base_dir;
+
+			// Skip if target directory is invalid or outside base directory.
+			if ( ! $target_dir || ! str_contains( $target_dir, $base_dir ) || ! is_dir( $target_dir ) ) {
+				continue;
+			}
+
+			// Check for root level SVGs.
+			$root_svgs = glob( $target_dir . '/*.svg' );
+
+			// If there are SVGs, add them.
 			if ( ! empty( $root_svgs ) ) {
 				$cat_slug  = '_theme';
 				$cat_title = __( 'Theme', 'mai-builder' );
 
-				// Add category.
-				$this->categories[] = [
-					'name'  => $cat_slug,
-					'title' => $cat_title,
-				];
+				// Add category if not already exists.
+				if ( ! $this->category_exists( $cat_slug ) ) {
+					$this->categories[] = [
+						'name'  => $cat_slug,
+						'title' => $cat_title,
+					];
+				}
 
 				// Add icons.
 				foreach ( $root_svgs as $svg ) {
@@ -161,49 +182,51 @@ class IconBlock {
 					];
 				}
 			}
-		}
 
-		// Get iterator.
-		$iterator = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::SELF_FIRST
-		);
+			// Get all subdirectories.
+			$iterator = new RecursiveIteratorIterator(
+				new RecursiveDirectoryIterator( $base_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+				RecursiveIteratorIterator::SELF_FIRST
+			);
 
-		// Loop through the iterator.
-		foreach ( $iterator as $file ) {
-			// Skip if not a directory.
-			if ( ! $file->isDir() ) {
-				continue;
-			}
+			// Process each subdirectory.
+			foreach ( $iterator as $file ) {
+				// Skip if not a directory.
+				if ( ! $file->isDir() ) {
+					continue;
+				}
 
-			// Get SVGs in this directory.
-			$svg_files = glob( $file->getPathname() . '/*.svg' );
+				// Get all SVGs.
+				$svg_files = glob( $file->getPathname() . '/*.svg' );
 
-			// Skip if no SVGs.
-			if ( empty( $svg_files ) ) {
-				continue;
-			}
+				// Skip if no SVGs.
+				if ( empty( $svg_files ) ) {
+					continue;
+				}
 
-			// Set category name.
-			$cat_base  = str_replace( $base_dir . '/', '', $file->getPathname() );
-			$cat_slug  = str_replace( '/', '-', $cat_base );
-			$cat_title = str_replace( '-', ' ', $cat_base );
+				// Set category name.
+				$cat_base  = str_replace( $base_dir . '/', '', $file->getPathname() );
+				$cat_slug  = str_replace( '/', '-', $cat_base );
+				$cat_title = str_replace( '-', ' ', $cat_base );
 
-			// Add category.
-			$this->categories[] = [
-				'name'  => $cat_slug,
-				'title' => $cat_title,
-			];
+				// Add category if not already exists.
+				if ( ! $this->category_exists( $cat_slug ) ) {
+					$this->categories[] = [
+						'name'  => $cat_slug,
+						'title' => $cat_title,
+					];
+				}
 
-			// Add icons.
-			foreach ( $svg_files as $svg ) {
-				$filename      = basename( $svg, '.svg' );
-				$this->icons[] = [
-					'name'       => sanitize_title( $cat_slug . '-' . $filename ),
-					'title'      => $this->format_title( $filename ),
-					'icon'       => file_get_contents( $svg ),
-					'categories' => [ $cat_slug ],
-				];
+				// Add icons.
+				foreach ( $svg_files as $svg ) {
+					$filename      = basename( $svg, '.svg' );
+					$this->icons[] = [
+						'name'       => sanitize_title( "{$cat_slug}-{$filename}" ),
+						'title'      => $this->format_title( $filename ),
+						'icon'       => file_get_contents( $svg ),
+						'categories' => [ $cat_slug ],
+					];
+				}
 			}
 		}
 
@@ -217,6 +240,24 @@ class IconBlock {
 			'icons'      => $this->icons,
 			'categories' => $this->categories,
 		], 200 );
+	}
+
+	/**
+	 * Check if a category already exists.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param string $slug The category slug to check.
+	 *
+	 * @return bool
+	 */
+	private function category_exists( $slug ) {
+		foreach ( $this->categories as $category ) {
+			if ( $category['name'] === $slug ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -240,22 +281,15 @@ class IconBlock {
 	 * @return void
 	 */
 	function enqueue_script() {
-		$icons_asset   = require( plugin_dir_path( __DIR__ ) . 'build/icon-block-icons.asset.php' );
-		$divider_asset = require( plugin_dir_path( __DIR__ ) . 'build/icon-block-divider.asset.php' );
+		// Get icons asset.
+		$icons_asset = require( plugin_dir_path( __DIR__ ) . 'build/icon-block-icons.asset.php' );
 
+		// Enqueue icons script.
 		wp_enqueue_script(
 			'mai-icon-block-icons',
 			plugins_url( 'build/icon-block-icons.js', dirname( __FILE__ ) ),
 			$icons_asset['dependencies'],
 			$icons_asset['version'],
-			true // Very important, otherwise the filter is called too early.
-		);
-
-		wp_enqueue_script(
-			'mai-icon-block-divider',
-			plugins_url( 'build/icon-block-divider.js', dirname( __FILE__ ) ),
-			$divider_asset['dependencies'],
-			$divider_asset['version'],
 			true // Very important, otherwise the filter is called too early.
 		);
 	}
