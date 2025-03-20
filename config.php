@@ -91,4 +91,6 @@ return [
 		plugin_dir_path(__FILE__) . 'assets/icons',
 		get_template_directory() . '/mai/icons',
 	],
+	// TODO: Patterns.
+	'patterns' => [],
 ];
