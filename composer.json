@@ -1,0 +1,14 @@
+{
+    "autoload": {
+        "psr-4": {
+            "Mai\\Builder\\": "classes/"
+        },
+        "classmap": [
+            "classes/"
+        ]
+    },
+    "require": {
+        "yahnis-elsts/plugin-update-checker": "^5.5",
+        "matthiasmullie/minify": "^1.3"
+    }
+}

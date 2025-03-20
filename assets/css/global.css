@@ -1,0 +1,35 @@
+/**
+ * Global CSS
+ */
+
+/* Add a default transition */
+a,
+button,
+input,
+textarea,
+select {
+	transition: all 0.15s ease-in-out;
+}
+
+/**
+ * WP Blocks
+ */
+
+/* Allow main content to grow, which forces footer to the bottom of the page */
+
+.wp-site-blocks,
+.is-root-container.wp-site-blocks {
+	display: flex;
+	flex-direction: column;
+	min-height: var(--wp-site-blocks-min-height, 100svh);
+
+	main {
+		flex-grow: 1;
+	}
+}
+
+/* Adjust the site blocks min height for the admin bar */
+
+.admin-bar  {
+	--wp-site-blocks-min-height: calc(100svh - var(--wp-admin--admin-bar--height, 0));
+}
