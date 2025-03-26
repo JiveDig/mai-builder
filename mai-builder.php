@@ -4,7 +4,7 @@
  * Plugin Name:     Mai Builder
  * Plugin URI:      https://bizbudding.com
  * Description:     Core functionality for Mai Theme FSE.
- * Version:         TBD
+ * Version:         0.2.0
  * Requires PHP:    8.0
  *
  * Author:          JiveDig
@@ -32,9 +32,9 @@ require_once __DIR__ . '/vendor/autoload.php';
 // Include non-class files only.
 // require_once __DIR__ . '/inc/setup.php';
 // require_once __DIR__ . '/inc/assets.php';
+require_once __DIR__ . '/inc/block-settings.php';
 require_once __DIR__ . '/inc/theme-json.php';
 require_once __DIR__ . '/inc/updater.php';
-
 // Instantiate classes.
 Assets::get_instance();
 
@@ -71,9 +71,6 @@ add_action( 'after_setup_theme', __NAMESPACE__ . '\setup' );
  * @return void
  */
 function setup() {
-	// Enqueue editor styles and fonts.
-	// add_editor_style( 'style.css' );
-
 	// Remove core block patterns.
 	remove_theme_support( 'core-block-patterns' );
 }

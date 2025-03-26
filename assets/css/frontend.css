@@ -33,3 +33,9 @@ select {
 .admin-bar  {
 	--wp-site-blocks-min-height: calc(100svh - var(--wp-admin--admin-bar--height, 0));
 }
+
+/* Remove default margin from template parts. Similar more specific version in editor.css. */
+
+:root :where(.wp-site-blocks) > :where(.wp-block-template-part, .wp-block-post-content) {
+	margin-block: 0;
+}

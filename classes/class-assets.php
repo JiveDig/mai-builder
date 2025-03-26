@@ -72,22 +72,31 @@ class Assets {
 	 * @return void
 	 */
 	public function hooks() {
-		add_action( 'admin_init',                [ $this, 'enqueue_editor_global_css' ], 5 );
-		add_action( 'wp_enqueue_scripts',        [ $this, 'enqueue_frontend_global_css' ], 5 );
-		add_action( 'wp_enqueue_scripts',        [ $this, 'enqueue_frontend_global_js' ], 5 );
-		add_action( 'after_setup_theme',         [ $this, 'enqueue_blocks_css' ], 5 );
-		add_action( 'after_setup_theme',         [ $this, 'register_block_styles' ], 5 );
-		add_filter( 'get_block_type_variations', [ $this, 'register_block_variations' ], 5, 2 );
+		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_editor_assets' ] );
+		add_action( 'wp_enqueue_scripts',          [ $this, 'enqueue_frontend_global_css' ], 5 );
+		add_action( 'wp_enqueue_scripts',          [ $this, 'enqueue_frontend_global_js' ], 5 );
+		add_action( 'after_setup_theme',           [ $this, 'enqueue_blocks_css' ], 5 );
+		add_action( 'after_setup_theme',           [ $this, 'register_block_styles' ], 5 );
+		add_filter( 'get_block_type_variations',   [ $this, 'register_block_variations' ], 5, 2 );
 	}
 
 	/**
-	 * Enqueue editor global styles.
+	 * Enqueue editor assets.
 	 *
 	 * @since 0.1.0
 	 *
 	 * @return void
 	 */
-	public function enqueue_editor_global_css() {
+	public function enqueue_editor_assets() {
+		$assets = include( plugin_dir_path( __DIR__ ) . 'build/block-settings.asset.php' );
+
+		wp_enqueue_script(
+			'mai-block-settings',
+			plugin_dir_url( __DIR__ ) . 'build/block-settings.js',
+			$assets['dependencies'],
+			$assets['version'],
+		);
+
 		// Get the global styles.
 		$styles = $this->cache->remember( 'global_styles', [ $this, 'get_global_css_data' ], $this->expire );
 
@@ -96,8 +105,11 @@ class Assets {
 			return;
 		}
 
-		// Add the editor styles.
-		add_editor_style( $styles['editor'] );
+		// Loop through the editor styles.
+		foreach ( $styles['editor'] as $style ) {
+			// Enqueue the editor style.
+			wp_enqueue_style( $style['handle'], $style['uri'], [], $style['ver'] );
+		}
 	}
 
 	/**
@@ -236,12 +248,8 @@ class Assets {
 			return $variations;
 		}
 
-		ray( $block_type );
-
 		// Register the block variation.
 		$variations[] = $data[ $block_type->name ];
-
-		ray( $variations );
 
 		return $variations;
 	}
@@ -349,7 +357,13 @@ class Assets {
 			// Add editor styles.
 			elseif ( 'editor' === $location ) {
 				foreach ( $file_paths as $file_path ) {
-					$styles[ $location ][] = $file_path['uri'];
+					$filename              = pathinfo( $file_path['path'], PATHINFO_FILENAME );
+					$styles[ $location ][] = [
+						'handle' => "mai-global-{$filename}",
+						'uri'    => $file_path['uri'],
+						'path'   => $file_path['path'],
+						'ver'    => filemtime( $file_path['path'] ),
+					];
 				}
 			}
 		}
@@ -475,6 +489,13 @@ class Assets {
 		return $data;
 	}
 
+	/**
+	 * Get block variations data.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @return array
+	 */
 	public function get_block_variations_data() {
 		$variations = (array) Config::get( 'blocks.variations' );
 		$data             = [];

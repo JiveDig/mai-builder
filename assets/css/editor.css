@@ -1,0 +1,6 @@
+/* Remove default margin from template parts. Similar less specific version in frontend.css. */
+
+:root :where(.wp-site-blocks) > .wp-block-template-part,
+:root :where(.wp-site-blocks) > .wp-block-post-content {
+	margin-block: 0;
+}

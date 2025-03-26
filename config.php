@@ -12,8 +12,9 @@ defined( 'ABSPATH' ) || exit;
 return [
 	// Add or override via {TBD}
 	'css' => [
-		'reset'  => [ 'frontend', 'editor' ],
-		'global' => [ 'frontend' ],
+		'reset'    => [ 'frontend', 'editor' ],
+		'frontend' => [ 'frontend' ],
+		'editor'   => [ 'editor' ],
 	],
 	// Add or override via {TBD}
 	'blocks' => [
@@ -39,12 +40,12 @@ return [
 				'name'    => 'subheading',
 				'default' => false,
 			],
-			'button-primary' => [
-				'label'   => __( 'Primary', 'mai-builder' ),
-				'blocks'  => [ 'core/button' ],
-				'name'    => 'primary',
-				'default' => true,
-			],
+			// 'button-primary' => [
+			// 	'label'   => __( 'Primary', 'mai-builder' ),
+			// 	'blocks'  => [ 'core/button' ],
+			// 	'name'    => 'primary',
+			// 	'default' => true,
+			// ],
 			'button-secondary' => [
 				'label'   => __( 'Secondary', 'mai-builder' ),
 				'blocks'  => [ 'core/button' ],
